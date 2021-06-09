@@ -1,12 +1,16 @@
+from numpy.core.numeric import NaN
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pydeck as pdk
 import plotly.graph_objects as go
 import time
+import uuid
 
 from PIL import Image
 from bson_decode import ingest_bson
+
+labels = ['vial', 'villa', 'doble', 'otro', 'nada', 'palo']
 
 colors = {
     "nada": [255,0,0,80],
@@ -17,6 +21,13 @@ colors = {
     "otro": [0,255,255,220],
     "indeterminado": [250,128,14,220]
 }
+
+def unique(list1):  
+    # insert the list to the set
+    list_set = set(list1)
+    # convert the set to the list
+    unique_list = (list(list_set))
+    return unique_list
 
 def colors_dict(label):
     global colors
@@ -34,9 +45,13 @@ def main():
     if file is not None:
         #og = cache_load_data(file)
         data = pd.read_csv(file)
+        data['uuid'] = [uuid.uuid1() for _ in range(len(data.index))]
+        data['id'] = ""
+        for index,row in data.iterrows():
+            data.loc[index,'id'] = str(row['uuid'])[0:18]
         #ph.success('Datos cargados correctamente')
         # Pretend we're doing some computation that takes time.
-        time.sleep(1.7)
+        #time.sleep(1.7)
         ph.empty()
 
         col1, col2, col3 = st.beta_columns([1,2,1])
@@ -73,7 +88,7 @@ def inflate_map_column(col,df,x):
         layers=[
             pdk.Layer(
                 'ScatterplotLayer',
-                data=df[['streetlight_lon','streetlight_lat','clase_str','streetlight_date','timestamp', 'streetlight_angle', 'streetlight_height','lux_aux','colors']],
+                data=df[['streetlight_lon','streetlight_lat','clase_str','streetlight_date','timestamp', 'streetlight_angle', 'streetlight_height','lux_aux','colors','id']],
                 get_position='[streetlight_lon,streetlight_lat]',
                 get_radius = x,
                 opacity = 1,
@@ -82,33 +97,36 @@ def inflate_map_column(col,df,x):
             ) 
         ],
         tooltip={
-                    'html': '<b>Fecha:</b> {streetlight_date} <br> <b> Id:</b> {timestamp} <br> <b> Clase:</b> {clase_str} <br> <b> luz:</b> {lux_aux} <br> <b> Altura:</b> {streetlight_height} <br> <b> Ángulo:</b> {streetlight_angle}' ,
+                    'html': '<b>Fecha:</b> {streetlight_date} <br> <b> Id:</b> {id} <br> <b> Clase:</b> {clase_str} <br> <b> Luz:</b> {lux_aux} <br> <b> Altura:</b> {streetlight_height} <br> <b> Ángulo:</b> {streetlight_angle}' ,
                     'style': 
                     {
                         "backgroundColor": "steelblue",
                         'color': 'white'
                     }
                 }
-    ), use_container_width=True)
+    ,height=700), use_container_width=True)
 
 def inflate_modification_column(col,data):
     with col:
         st.header('Inspección')
-        cloud = st.selectbox('Luminaria a estudiar', ['id 1','id 2', 'id n'])
+        cloud = st.selectbox('Luminaria a estudiar', data['id'].to_list())
         #st.image('Std_Lamparon.png',use_column_width=True)
         st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
         #st.plotly_chart(get_plotly_fig(get_xyz_from_bson(ingest_bson()),use_container_width=True) #hard-coded -> change in future
+        st.markdown("---")
+        st.write('**_Clase probable_**: ', 'Vial')
+        l = st.selectbox('Nueva clase', labels)
 
 def get_plotly_fig(xyz_tuple):
     fig = go.Figure(data=[go.Scatter3d(x=xyz_tuple[0], y=xyz_tuple[1], z=xyz_tuple[2], mode='markers',marker=dict(size=1))])
-    fig.update_layout(margin=dict(l=20,r=0,b=70,t=0))
+    fig.update_layout(margin=dict(l=20,r=0,b=0,t=0))
     fig.update_scenes(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False)
     return fig
 
 
 def get_plotly_fig_hd(df):
     fig = go.Figure(data=[go.Scatter3d(x=df.x, y=df.y, z=df.z, mode='markers',marker=dict(size=1.5))])
-    fig.update_layout(margin=dict(l=20,r=0,b=70,t=0))
+    fig.update_layout(margin=dict(l=20,r=0,b=0,t=0),autosize=False,width=800,height=200,)
     fig.update_scenes(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False)
     return fig
 
