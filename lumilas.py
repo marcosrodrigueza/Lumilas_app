@@ -108,14 +108,18 @@ def inflate_map_column(col,df,x):
 
 def inflate_modification_column(col,data):
     with col:
-        st.header('Inspección')
-        cloud = st.selectbox('Luminaria a estudiar', data['id'].to_list())
-        #st.image('Std_Lamparon.png',use_column_width=True)
-        st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
-        #st.plotly_chart(get_plotly_fig(get_xyz_from_bson(ingest_bson()),use_container_width=True) #hard-coded -> change in future
-        st.markdown("---")
-        st.write('**_Clase probable_**: ', 'Vial')
-        l = st.selectbox('Nueva clase', labels)
+        with st.form("my_form"):
+            st.header('Inspección')
+            cloud = st.selectbox('Luminaria a estudiar', data['id'].to_list())
+            #st.image('Std_Lamparon.png',use_column_width=True)
+            st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
+            #st.plotly_chart(get_plotly_fig(get_xyz_from_bson(ingest_bson()),use_container_width=True) #hard-coded -> change in future
+            st.markdown("---")
+            st.write('**_Clase probable_**: ', 'Vial')
+            l = st.selectbox('Nueva clase', labels)
+            submitted = st.form_submit_button("Modificar")
+            if submitted:
+                st.success("Modificado correctamente")
 
 def get_plotly_fig(xyz_tuple):
     fig = go.Figure(data=[go.Scatter3d(x=xyz_tuple[0], y=xyz_tuple[1], z=xyz_tuple[2], mode='markers',marker=dict(size=1))])
