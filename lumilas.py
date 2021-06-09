@@ -6,6 +6,8 @@ import pydeck as pdk
 import plotly.graph_objects as go
 import time
 import uuid
+import io
+import base64
 
 from PIL import Image
 from bson_decode import ingest_bson
@@ -36,8 +38,8 @@ def colors_dict(label):
 
 def main():
     coln1, col_tit, coln3 = st.beta_columns([1,2,1])
-    col_tit.title('Lumilas: aplicación de análisis :zap:')
-
+    #col_tit.title('Lumilas: aplicación de análisis :zap:')
+    col_tit.image(load_image('logo.jpg'), use_column_width=True)
     st.write('## Carga de datos')
     file = st.file_uploader('Seleccione el archivo .csv que quiera analizar',type='csv')
 
@@ -58,17 +60,21 @@ def main():
 
         x = inflate_preview_column(col1,data)
         inflate_map_column(col2,data,x)
-        inflate_modification_column(col3,data)
+        new_data = inflate_modification_column(col3,data)
+        st.markdown('---')
+        save_modifications_display(data,new_data,file)
+
 
     #'''Made with :heart: by LSI.'''
 
 def inflate_preview_column(col, data):
     with col:
-        st.header('Datos')
+        st.header('Tabla Valores')
         st.dataframe(data.head(400))
         #st.write('## Alertas:',0)
+        st.markdown("---")
         st.write('## Configuración de mapa')
-        r = st.slider('Radio punto', min_value=1, max_value=7, value=5, step=1)
+        r = st.slider('Radio de los puntos', min_value=1, max_value=10, value=5, step=1)
         return r
 
 def inflate_map_column(col,df,x):
@@ -84,6 +90,7 @@ def inflate_map_column(col,df,x):
             longitude= np.mean(df['streetlight_lon'].to_numpy()),
             zoom=16,
             pitch=0,
+            height=590,
         ),
         layers=[
             pdk.Layer(
@@ -104,7 +111,7 @@ def inflate_map_column(col,df,x):
                         'color': 'white'
                     }
                 }
-    ,height=700), use_container_width=True)
+    ), use_container_width=True)
 
 def inflate_modification_column(col,data):
     with col:
@@ -115,11 +122,12 @@ def inflate_modification_column(col,data):
             st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
             #st.plotly_chart(get_plotly_fig(get_xyz_from_bson(ingest_bson()),use_container_width=True) #hard-coded -> change in future
             st.markdown("---")
-            st.write('**_Clase probable_**: ', 'Vial')
+            st.write('**_Clase sugerida por el sistema_**: ', '<span style="color:blue">vial</span>', unsafe_allow_html=True)
             l = st.selectbox('Nueva clase', labels)
             submitted = st.form_submit_button("Modificar")
             if submitted:
-                st.success("Modificado correctamente")
+                a =1
+    return data
 
 def get_plotly_fig(xyz_tuple):
     fig = go.Figure(data=[go.Scatter3d(x=xyz_tuple[0], y=xyz_tuple[1], z=xyz_tuple[2], mode='markers',marker=dict(size=1))])
@@ -149,73 +157,24 @@ def get_xyz_from_bson(bson_object):
     z = [element['z'] for element in bson_object['data']]   
 
     return (x,y,z)  
-#@st.cache  # 👈 This function will be cached
-def process_data(df):
 
-    icon_data = {
-    "x":0,
-    "y":0,
-    "width": 32,
-    "height": 32, 
-    "mask": True
-    }
-  
-    st.write("## Here's a quick preview of the Data loaded ")
-    st.dataframe(df.head(10)) 
-
-    '''## Map with three-dimensional info '''
-    st.pydeck_chart(pdk.Deck(
-     map_style='mapbox://styles/mrodrigueza/ck8fw3dx139zl1invheqydp3j',
-     initial_view_state=pdk.ViewState(
-         latitude=40.349972, 
-         longitude= -3.753149,
-         zoom=14,
-         pitch=35,
-     ),
-     layers=[
-         pdk.Layer(
-            'ScatterplotLayer',
-            data=df,
-            get_position='[lon, lat]',
-            get_radius = 7,
-            get_color = [255, 251, 138,255],#'[255, 242, 0]',
-            auto_highlight = True,
-            pickable=True,
-            extruded=True,
-         ),
-         pdk.Layer(
-            'IconLayer',
-            data=df,
-            icon_atlas='/home/marcos/Descargas/Diseño sin título.png',
-            icon_mapping= 'icon_data',
-            get_position='[lon, lat]',
-            get_size=2,
-            pickable=True,
-            size_scale=10
-         )
-     ]
- ),use_container_width=True)
-
-    '''## Heatmap :fire: '''
-
-    st.pydeck_chart(pdk.Deck(
-     map_style='mapbox://styles/mrodrigueza/ck8fw3dx139zl1invheqydp3j',
-     initial_view_state=pdk.ViewState(
-         latitude=40.349972, 
-         longitude= -3.753149,
-         zoom=12,
-         pitch=0,
-     ),
-     layers=[
-         pdk.Layer(
-            'HeatmapLayer',
-            data=df,
-            get_position='[lon, lat]',
-            radius_pixels = 12,
-            color_range=[[255, 247, 0,255],[255, 251, 138,255],[255, 254, 237,255]]
-         )
-     ]
- ))
+def save_modifications_display(data,new_data,file):
+    st.write('## Guardar y exportar')
+    l,r = st.beta_columns([1,1])
+    r.write("")
+    r.write("")
+    
+    name = l.text_input('Nombre del archivo', file.name[0:-3] + "xlsx")
+    save = r.button("Exportar")
+    if save:
+        new_data.to_excel(name,'Datos luminarias',columns=['uuid','streetlight_date','timestamp','streetlight_lon','streetlight_lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
+        st.success("Exportado correctamente")
+        towrite = io.BytesIO()
+        downloaded_file = new_data.to_excel(towrite, encoding='utf-8', index=False, header=True, columns=['uuid','streetlight_date','timestamp','streetlight_lon','streetlight_lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
+        towrite.seek(0)  #reset pointer
+        b64 = base64.b64encode(towrite.read()).decode() #some strings
+        linko= f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download={name}>Descargar Archivo Excel</a>'
+        st.markdown(linko, unsafe_allow_html=True)
 
 @st.cache 
 def load_image(path):
