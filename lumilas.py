@@ -61,7 +61,7 @@ def main():
 
         x = inflate_preview_column(col1,data)
         inflate_map_column(col2,data,x)
-        new_data = inflate_modification_column(col3,data)
+        new_data = inflate_modification_column(col3,data,file)
         st.markdown('---')
         save_modifications_display(data,new_data,file)
 
@@ -83,12 +83,6 @@ def inflate_map_column(col,df,x):
     with col:
         st.header('Mapa')
         mp = st.empty()
-        '''
-        for i,row in df.iterrows():
-            if row['New_Category'] == 'vial' or row['New_Category'] == 'villa' or row['New_Category'] == 'palo' or row['New_Category'] == 'doble' or row['New_Category'] == 'otro':
-                df.loc[i,'clase_str'] = row['New_Category']
-                print('a')
-        '''
 
         df['colors'] = colors_dict(df['clase_str'].to_list())
         mp.pydeck_chart(pdk.Deck(
@@ -121,23 +115,25 @@ def inflate_map_column(col,df,x):
                 }
     ), use_container_width=True)
 
-def inflate_modification_column(col,data):
+def inflate_modification_column(col,data,my_file):
     with col:
+        st.header('Inspección')
+        cloud = st.selectbox('Luminaria a estudiar', data['id'].to_list())
         with st.form("my_form"):
-            st.header('Inspección')
-            cloud = st.selectbox('Luminaria a estudiar', data['id'].to_list())
             #st.image('Std_Lamparon.png',use_column_width=True)
             #st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
-            register = data[data['id']==cloud]
-            st.plotly_chart(get_plotly_fig(get_xyz_from_dict(decode_cjson(register['jpoints'])),use_container_width=True)) #hard-coded -> change in future
+            register = data[data['id']==cloud].iloc[0]
+            st.plotly_chart(get_plotly_fig(get_xyz_from_dict(decode_cjson(register['jpoints']))),use_container_width=True) #hard-coded -> change in future
             st.markdown("---")
-            st.write('**_Clase sugerida por el sistema_**: ', '<span style="color:blue">vial</span>', unsafe_allow_html=True)
+            st.write('**_Clase sugerida por el sistema_**: ', '<span style="color:blue">{0}</span>'.format(register['clase_str']), unsafe_allow_html=True)
             l = st.selectbox('Nueva clase', labels)
             submitted = st.form_submit_button("Modificar")
             if submitted:
                 for i,row in data.iterrows():
                     if row['uuid'] == register['uuid']:
                         data.loc[i,'clase_str'] == l
+                #print(my_file)
+                #data.to_csv(my_file)
     return data
 
 def get_plotly_fig(xyz_tuple):
@@ -170,8 +166,9 @@ def get_xyz_from_bson(bson_object):
     return (x,y,z)  
 
 def decode_cjson(cjson_str):
+    print(type(cjson_str))
+    print(cjson_str)
     json_str = cjson_str.replace('*',',')
-    print(json_str)
     return json.loads(json_str)
 
 def get_xyz_from_dict(obj):
@@ -186,7 +183,7 @@ def save_modifications_display(data,new_data,file):
     name = l.text_input('Nombre del archivo', file.name[0:-3] + "xlsx")
     save = r.button("Exportar")
     if save:
-        new_data.to_excel(name,'Datos luminarias',columns=['uuid','streetlight_date','streetlight_date','lon','lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
+        new_data.to_excel(name,'Datos luminarias',columns=['uuid','clase_str','streetlight_date','lon','lat','streetlight_x_utm','streetlight_y_utm','streetlight_street', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
         st.success("Exportado correctamente")
         towrite = io.BytesIO()
         downloaded_file = new_data.to_excel(towrite, encoding='utf-8', index=False, header=True, columns=['uuid','streetlight_date','streetlight_date','lon','lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])

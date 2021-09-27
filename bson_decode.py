@@ -19,3 +19,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+'''
+for i,row in df.iterrows():
+    if row['New_Category'] == 'vial' or row['New_Category'] == 'villa' or row['New_Category'] == 'palo' or row['New_Category'] == 'doble' or row['New_Category'] == 'otro':
+        df.loc[i,'clase_str'] = row['New_Category']
+        print('a')
+'''
