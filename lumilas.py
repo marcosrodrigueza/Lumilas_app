@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import time
 import uuid
 import io
+import json
 import base64
 
 from PIL import Image
@@ -47,10 +48,10 @@ def main():
     if file is not None:
         #og = cache_load_data(file)
         data = pd.read_csv(file)
-        data['uuid'] = [uuid.uuid1() for _ in range(len(data.index))]
+        #data['uuid'] = [uuid.uuid1() for _ in range(len(data.index))]
         data['id'] = ""
         for index,row in data.iterrows():
-            data.loc[index,'id'] = str(row['uuid'])[0:18]
+            data.loc[index,'id'] = str(row['uuid'])[0:8]
         #ph.success('Datos cargados correctamente')
         # Pretend we're doing some computation that takes time.
         #time.sleep(1.7)
@@ -93,8 +94,8 @@ def inflate_map_column(col,df,x):
         mp.pydeck_chart(pdk.Deck(
         map_style='mapbox://styles/mrodrigueza/ck8fw3dx139zl1invheqydp3j',
         initial_view_state=pdk.ViewState(
-            latitude= np.mean(df['streetlight_lat'].to_numpy()), 
-            longitude= np.mean(df['streetlight_lon'].to_numpy()),
+            latitude= np.mean(df['lat'].to_numpy()), 
+            longitude= np.mean(df['lon'].to_numpy()),
             zoom=16,
             pitch=0,
             height=590,
@@ -102,8 +103,8 @@ def inflate_map_column(col,df,x):
         layers=[
             pdk.Layer(
                 'ScatterplotLayer',
-                data=df[['streetlight_lon','streetlight_lat','clase_str','streetlight_date','timestamp', 'streetlight_angle', 'streetlight_height','lux_aux','colors','id','timestamp']],
-                get_position='[streetlight_lon,streetlight_lat]',
+                data=df[['lon','lat','clase_str','streetlight_date','streetlight_date', 'streetlight_angle', 'streetlight_height','lux_aux','colors','id','streetlight_date']],
+                get_position='[lon,lat]',
                 get_radius = x,
                 opacity = 1,
                 get_color = 'colors',#'[255, 242, 0]', #df['clase_str'].applymap(lambda x: colors[x]),
@@ -111,7 +112,7 @@ def inflate_map_column(col,df,x):
             ) 
         ],
         tooltip={
-                    'html': '<b>Fecha:</b> {streetlight_date} <br> <b> Id:</b> {id} <br> <b> ts:</b> {timestamp}<br> <b> Clase:</b> {clase_str} <br> <b> Luz:</b> {lux_aux} <br> <b> Altura:</b> {streetlight_height} <br> <b> Ángulo:</b> {streetlight_angle}' ,
+                    'html': '<b>Fecha:</b> {streetlight_date} <br> <b> Id:</b> {id} <br> <b> ts:</b> {streetlight_date}<br> <b> Clase:</b> {clase_str} <br> <b> Luz:</b> {lux_aux} <br> <b> Altura:</b> {streetlight_height} <br> <b> Ángulo:</b> {streetlight_angle}' ,
                     'style': 
                     {
                         "backgroundColor": "steelblue",
@@ -170,6 +171,7 @@ def get_xyz_from_bson(bson_object):
 
 def decode_cjson(cjson_str):
     json_str = cjson_str.replace('*',',')
+    print(json_str)
     return json.loads(json_str)
 
 def get_xyz_from_dict(obj):
@@ -184,10 +186,10 @@ def save_modifications_display(data,new_data,file):
     name = l.text_input('Nombre del archivo', file.name[0:-3] + "xlsx")
     save = r.button("Exportar")
     if save:
-        new_data.to_excel(name,'Datos luminarias',columns=['uuid','streetlight_date','timestamp','streetlight_lon','streetlight_lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
+        new_data.to_excel(name,'Datos luminarias',columns=['uuid','streetlight_date','streetlight_date','lon','lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
         st.success("Exportado correctamente")
         towrite = io.BytesIO()
-        downloaded_file = new_data.to_excel(towrite, encoding='utf-8', index=False, header=True, columns=['uuid','streetlight_date','timestamp','streetlight_lon','streetlight_lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
+        downloaded_file = new_data.to_excel(towrite, encoding='utf-8', index=False, header=True, columns=['uuid','streetlight_date','streetlight_date','lon','lat','streetlight_x_utm','streetlight_y_utm','streetlight_street','clase_str', 'streetlight_angle', 'streetlight_height','lux_aux','potencia','tipo lampara'])
         towrite.seek(0)  #reset pointer
         b64 = base64.b64encode(towrite.read()).decode() #some strings
         linko= f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download={name}>Descargar Archivo Excel</a>'
