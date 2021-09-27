@@ -10,7 +10,7 @@ import io
 import base64
 
 from PIL import Image
-from bson_decode import ingest_bson
+#from bson_decode import ingest_bson
 
 labels = ['vial', 'villa', 'doble', 'otro', 'nada', 'palo']
 
@@ -82,6 +82,13 @@ def inflate_map_column(col,df,x):
     with col:
         st.header('Mapa')
         mp = st.empty()
+        '''
+        for i,row in df.iterrows():
+            if row['New_Category'] == 'vial' or row['New_Category'] == 'villa' or row['New_Category'] == 'palo' or row['New_Category'] == 'doble' or row['New_Category'] == 'otro':
+                df.loc[i,'clase_str'] = row['New_Category']
+                print('a')
+        '''
+
         df['colors'] = colors_dict(df['clase_str'].to_list())
         mp.pydeck_chart(pdk.Deck(
         map_style='mapbox://styles/mrodrigueza/ck8fw3dx139zl1invheqydp3j',
@@ -95,7 +102,7 @@ def inflate_map_column(col,df,x):
         layers=[
             pdk.Layer(
                 'ScatterplotLayer',
-                data=df[['streetlight_lon','streetlight_lat','clase_str','streetlight_date','timestamp', 'streetlight_angle', 'streetlight_height','lux_aux','colors','id']],
+                data=df[['streetlight_lon','streetlight_lat','clase_str','streetlight_date','timestamp', 'streetlight_angle', 'streetlight_height','lux_aux','colors','id','timestamp']],
                 get_position='[streetlight_lon,streetlight_lat]',
                 get_radius = x,
                 opacity = 1,
@@ -104,7 +111,7 @@ def inflate_map_column(col,df,x):
             ) 
         ],
         tooltip={
-                    'html': '<b>Fecha:</b> {streetlight_date} <br> <b> Id:</b> {id} <br> <b> Clase:</b> {clase_str} <br> <b> Luz:</b> {lux_aux} <br> <b> Altura:</b> {streetlight_height} <br> <b> Ángulo:</b> {streetlight_angle}' ,
+                    'html': '<b>Fecha:</b> {streetlight_date} <br> <b> Id:</b> {id} <br> <b> ts:</b> {timestamp}<br> <b> Clase:</b> {clase_str} <br> <b> Luz:</b> {lux_aux} <br> <b> Altura:</b> {streetlight_height} <br> <b> Ángulo:</b> {streetlight_angle}' ,
                     'style': 
                     {
                         "backgroundColor": "steelblue",
@@ -119,14 +126,17 @@ def inflate_modification_column(col,data):
             st.header('Inspección')
             cloud = st.selectbox('Luminaria a estudiar', data['id'].to_list())
             #st.image('Std_Lamparon.png',use_column_width=True)
-            st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
-            #st.plotly_chart(get_plotly_fig(get_xyz_from_bson(ingest_bson()),use_container_width=True) #hard-coded -> change in future
+            #st.plotly_chart(get_plotly_fig_hd(pd.read_csv('/home/marcos/Escritorio/cluster_3_6_2019_18_56_20_10.csv')),use_container_width=True) #hard-coded -> change in future
+            register = data[data['id']==cloud]
+            st.plotly_chart(get_plotly_fig(get_xyz_from_dict(decode_cjson(register['jpoints'])),use_container_width=True)) #hard-coded -> change in future
             st.markdown("---")
             st.write('**_Clase sugerida por el sistema_**: ', '<span style="color:blue">vial</span>', unsafe_allow_html=True)
             l = st.selectbox('Nueva clase', labels)
             submitted = st.form_submit_button("Modificar")
             if submitted:
-                a =1
+                for i,row in data.iterrows():
+                    if row['uuid'] == register['uuid']:
+                        data.loc[i,'clase_str'] == l
     return data
 
 def get_plotly_fig(xyz_tuple):
@@ -157,6 +167,13 @@ def get_xyz_from_bson(bson_object):
     z = [element['z'] for element in bson_object['data']]   
 
     return (x,y,z)  
+
+def decode_cjson(cjson_str):
+    json_str = cjson_str.replace('*',',')
+    return json.loads(json_str)
+
+def get_xyz_from_dict(obj):
+    return (obj['x'],obj['y'],obj['z'])
 
 def save_modifications_display(data,new_data,file):
     st.write('## Guardar y exportar')
