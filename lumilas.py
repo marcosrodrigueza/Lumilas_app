@@ -38,7 +38,7 @@ def colors_dict(label):
     return res
 
 def main():
-    coln1, col_tit, coln3 = st.beta_columns([1,2,1])
+    coln1, col_tit, coln3 = st.columns([1,2,1])
     #col_tit.title('Lumilas: aplicación de análisis :zap:')
     col_tit.image(load_image('logo.jpg'), use_column_width=True)
     st.write('## Carga de datos')
@@ -47,7 +47,11 @@ def main():
     ph = st.empty()
     if file is not None:
         #og = cache_load_data(file)
-        data = pd.read_csv(file)
+        data = None
+        if 'data' not in st.session_state:
+            data = pd.read_csv(file)
+            st.session_state.data = data
+        data = st.session_state.data
         #data['uuid'] = [uuid.uuid1() for _ in range(len(data.index))]
         data['id'] = ""
         for index,row in data.iterrows():
@@ -57,11 +61,13 @@ def main():
         #time.sleep(1.7)
         ph.empty()
 
-        col1, col2, col3 = st.beta_columns([1,2,1])
+        col1, col2, col3 = st.columns([1,2,1])
 
         x = inflate_preview_column(col1,data)
         inflate_map_column(col2,data,x)
         new_data = inflate_modification_column(col3,data,file)
+        st.session_state.data = new_data
+        #print(st.session_state.data)
         st.markdown('---')
         save_modifications_display(data,new_data,file)
 
@@ -128,12 +134,16 @@ def inflate_modification_column(col,data,my_file):
             st.write('**_Clase sugerida por el sistema_**: ', '<span style="color:blue">{0}</span>'.format(register['clase_str']), unsafe_allow_html=True)
             l = st.selectbox('Nueva clase', labels)
             submitted = st.form_submit_button("Modificar")
-            if submitted:
-                for i,row in data.iterrows():
-                    if row['uuid'] == register['uuid']:
-                        data.loc[i,'clase_str'] == l
-                #print(my_file)
-                #data.to_csv(my_file)
+
+        if submitted:
+            for i,row in data.iterrows():
+                if row['uuid'] == register['uuid']:
+                    print("found")
+                    data.loc[i,'clase_str'] = l
+                    st.session_state.data = data
+                    
+            #print(my_file)
+            #data.to_csv(my_file)
     return data
 
 def get_plotly_fig(xyz_tuple):
@@ -166,8 +176,8 @@ def get_xyz_from_bson(bson_object):
     return (x,y,z)  
 
 def decode_cjson(cjson_str):
-    print(type(cjson_str))
-    print(cjson_str)
+    #print(type(cjson_str))
+    #print(cjson_str)
     json_str = cjson_str.replace('*',',')
     return json.loads(json_str)
 
@@ -176,7 +186,7 @@ def get_xyz_from_dict(obj):
 
 def save_modifications_display(data,new_data,file):
     st.write('## Guardar y exportar')
-    l,r = st.beta_columns([1,1])
+    l,r = st.columns([1,1])
     r.write("")
     r.write("")
     
