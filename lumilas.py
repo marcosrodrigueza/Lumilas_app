@@ -82,6 +82,9 @@ def inflate_preview_column(col, data):
         st.markdown("---")
         st.write('## Configuración de mapa')
         r = st.slider('Radio de los puntos', min_value=1, max_value=10, value=5, step=1)
+        st.markdown("---")
+        st.write('## Aplicación')
+        refresh = st.button("Refrescar datos e interfaz")
         return r
 
 def inflate_map_column(col,df,x):
@@ -140,7 +143,6 @@ def inflate_modification_column(col,data,my_file):
         if submitted:
             for i,row in data.iterrows():
                 if row['uuid'] == register['uuid']:
-                    print("found")
                     data.loc[i,'clase_str'] = l
                     st.session_state.data = data
                     
