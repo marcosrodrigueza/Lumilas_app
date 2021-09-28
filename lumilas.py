@@ -121,6 +121,8 @@ def inflate_map_column(col,df,x):
                 }
     ), use_container_width=True)
 
+        st.image(load_image('leyenda.png'), use_column_width=True)
+
 def inflate_modification_column(col,data,my_file):
     with col:
         st.header('Inspección')
